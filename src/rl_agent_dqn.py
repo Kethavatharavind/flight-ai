@@ -103,37 +103,53 @@ class DQNAgent:
         """
         vec = np.zeros(self.state_dim)
         
-        # 1. Base Probability
-        vec[0] = base_prob / 100.0
+        # 1. Base Probability (handle None)
+        vec[0] = float(base_prob or 0) / 100.0
         
-        # 2. Weather Encoding (Simple mapping)
-        weather_map = {'Clear': 0, 'Cloudy': 0.2, 'Rain': 0.6, 'Storm': 1.0, 'Fog': 0.8}
-        w_origin = signals.get('live_forecast_origin', {}).get('condition', 'Clear')
-        w_dest = signals.get('live_forecast_destination', {}).get('condition', 'Clear')
-        vec[1] = weather_map.get(w_origin, 0.4)
-        vec[2] = weather_map.get(w_dest, 0.4)
+        # 2. Weather Encoding (handle None/missing values)
+        weather_map = {'clear': 0, 'cloudy': 0.2, 'rain': 0.6, 'storm': 1.0, 'fog': 0.8, 'unknown': 0.4}
         
-        # 3. Airport Context
-        c_origin = signals.get('live_context_origin_airport', {}).get('delay_is_active', 'False')
-        c_dest = signals.get('live_context_destination_airport', {}).get('delay_is_active', 'False')
+        w_origin = signals.get('live_forecast_origin', {}).get('condition')
+        w_dest = signals.get('live_forecast_destination', {}).get('condition')
+        
+        # Handle None and convert to lowercase for matching
+        w_origin_str = str(w_origin).lower() if w_origin else 'unknown'
+        w_dest_str = str(w_dest).lower() if w_dest else 'unknown'
+        
+        # Find best match in weather_map
+        vec[1] = next((v for k, v in weather_map.items() if k in w_origin_str), 0.4)
+        vec[2] = next((v for k, v in weather_map.items() if k in w_dest_str), 0.4)
+        
+        # 3. Airport Context (handle None)
+        c_origin = signals.get('live_context_origin_airport', {}).get('delay_is_active')
+        c_dest = signals.get('live_context_destination_airport', {}).get('delay_is_active')
         vec[3] = 1.0 if str(c_origin) == 'True' else 0.0
         vec[4] = 1.0 if str(c_dest) == 'True' else 0.0
         
-        # 4. History pattern
-        hist_rate = signals.get('long_term_history_seasonal', {}).get('delay_rate', 0)
-        recent_rate = signals.get('recent_performance_last_6_months', {}).get('delay_rate_percent', 0)
-        vec[5] = float(hist_rate) / 100.0
-        vec[6] = float(recent_rate) / 100.0
+        # 4. History pattern (handle None values)
+        hist_rate = signals.get('long_term_history_seasonal', {}).get('delay_rate')
+        recent_rate = signals.get('recent_performance_last_6_months', {}).get('delay_rate_percent')
+        vec[5] = float(hist_rate or 0) / 100.0
+        vec[6] = float(recent_rate or 0) / 100.0
         
-        # 5. Time
-        vec[7] = day_of_week / 7.0
-        vec[8] = hour / 24.0
+        # 5. Time (handle None)
+        vec[7] = float(day_of_week or 0) / 7.0
+        vec[8] = float(hour or 12) / 24.0
         
         return torch.FloatTensor(vec).to(device)
 
     def adjust_prediction(self, base_probability, signals, flight_date=None, flight_time=None):
         """Main interface for using the agent"""
         try:
+            # Validate inputs - handle None values
+            if base_probability is None:
+                logger.warning("⚠️ base_probability is None, using 50% default")
+                base_probability = 50
+            
+            if signals is None:
+                logger.warning("⚠️ signals is None, using empty dict")
+                signals = {}
+            
             # Parse time
             dt = datetime.now()
             if flight_time:

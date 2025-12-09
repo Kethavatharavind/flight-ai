@@ -7,6 +7,9 @@ Render Deployment Test Script
 import sys
 import os
 
+# Add src folder to Python path for imports
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(__file__)), 'src'))
+
 def print_header(title):
     print("\n" + "=" * 60)
     print(f"🧪 {title}")

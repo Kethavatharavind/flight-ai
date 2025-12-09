@@ -13,9 +13,10 @@ import numpy as np
 # Add src folder to Python path for imports
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
 
-from src import data_fetcher
-from src import llm_analyzer
-from src import rl_agent
+# Import modules from src/
+import data_fetcher
+import llm_analyzer
+import rl_agent
 import atexit
 import signal
 import logging
@@ -75,11 +76,12 @@ def rate_limit(f):
 
 AVAILABLE_ROUTES = []
 try:
-    with open('major_routes.json', 'r') as f:
+    routes_path = os.path.join(os.path.dirname(__file__), 'config', 'major_routes.json')
+    with open(routes_path, 'r') as f:
         AVAILABLE_ROUTES = json.load(f)
     logger.info(f"Loaded {len(AVAILABLE_ROUTES)} major routes (India)")
 except FileNotFoundError:
-    logger.warning("major_routes.json not found")
+    logger.warning("major_routes.json not found in config/")
 except Exception as e:
     logger.error(f"Error loading routes: {e}")
 

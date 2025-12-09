@@ -1,12 +1,16 @@
 import pandas as pd
 import json
 import numpy as np
+import os
 
-# --- CONFIGURATION ---
-CSV_FILE_PATH = 'Processed_data15.csv'
-LONG_TERM_SUMMARY_FILE = 'long_term_summary.json'
-AVAILABLE_ROUTES_FILE = 'available_routes.json'
-MAJOR_ROUTES_FILE = 'major_routes.json'
+# Get the project root directory (parent of scripts/)
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+# --- CONFIGURATION --- (using new folder structure)
+CSV_FILE_PATH = os.path.join(PROJECT_ROOT, 'data', 'Processed_data15.csv')
+LONG_TERM_SUMMARY_FILE = os.path.join(PROJECT_ROOT, 'data', 'long_term_summary.json')
+AVAILABLE_ROUTES_FILE = os.path.join(PROJECT_ROOT, 'config', 'available_routes.json')
+MAJOR_ROUTES_FILE = os.path.join(PROJECT_ROOT, 'config', 'major_routes.json')
 
 TOP_N_ROUTES = 250
 # ---

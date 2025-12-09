@@ -64,10 +64,10 @@ safety_settings = [
 ]
 
 MODEL_NAMES = [
-    "models/gemini-2.5-flash-lite",    # Fresh quota! 0/20 RPD
-    "models/gemini-2.0-flash-lite",    # Good quota
-    "models/gemini-2.0-flash",         # Standard fallback
-    "models/gemini-1.5-flash",         # Older but reliable
+    "models/gemini-2.5-flash-lite",    # ✅ WORKING! Has quota
+    "models/gemini-2.0-flash-exp",     # Fallback 1
+    "models/gemini-exp-1206",          # Fallback 2
+    "models/gemini-2.0-flash",         # Fallback 3
 ]
 
 # API key rotation - tries primary, then backup if quota exceeded
@@ -97,8 +97,7 @@ def initialize_gemini():
                     generation_config=generation_config,
                     safety_settings=safety_settings
                 )
-                # Test the model
-                test_response = test_model.generate_content("Say OK")
+                # Skip test call to save quota - just initialize the model
                 model = test_model
                 current_key_index = key_idx
                 key_label = "PRIMARY" if key_idx == 0 else "BACKUP"

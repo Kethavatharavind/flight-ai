@@ -438,46 +438,18 @@ def get_recent_performance(origin_iata, dest_iata, flight_number):
 
 @lru_cache(maxsize=128)
 def get_airport_status(airport_code):
-    """Fetch airport delays"""
-    if not AERODATABOX_API_KEY:
-        return {
-            "code": airport_code,
-            "delay_is_active": "Unknown",
-            "current_reason": "API not configured",
-            "current_avg_delay_mins": 0
-        }
+    """
+    Return airport status (AeroDataBox API removed - was causing 400 errors)
+    Always returns 'Normal Operations' as default
+    """
+    logger.info(f"🏢 Airport: {airport_code} (default status)")
     
-    logger.info(f"🏢 Fetching airport status: {airport_code}")
-    
-    url = f"https://aerodatabox.p.rapidapi.com/airports/iata/{airport_code}/delays"
-    
-    try:
-        response = requests.get(url, headers=AERODATABOX_HEADERS, timeout=10)
-        response.raise_for_status()
-        data = response.json()
-        
-        delay_mins = data.get('departure', {}).get('delayTimeMinutes', 0)
-        is_delayed = delay_mins > 15
-        reason = data.get('departure', {}).get('reason', 'Normal Operations')
-        
-        result = {
-            "code": airport_code,
-            "delay_is_active": str(is_delayed),
-            "current_reason": reason,
-            "current_avg_delay_mins": int(delay_mins)
-        }
-        
-        logger.info(f"✅ Status: {reason}")
-        return result
-        
-    except Exception as e:
-        logger.warning(f"⚠️ Airport status unavailable: {e}")
-        return {
-            "code": airport_code,
-            "delay_is_active": "Unknown",
-            "current_reason": "Status unavailable",
-            "current_avg_delay_mins": 0
-        }
+    return {
+        "code": airport_code,
+        "delay_is_active": "False",
+        "current_reason": "Normal Operations",
+        "current_avg_delay_mins": 0
+    }
 
 
 def get_news(query):

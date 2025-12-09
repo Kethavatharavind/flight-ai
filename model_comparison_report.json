@@ -1,0 +1,44 @@
+{
+  "timestamp": "2025-12-09T21:18:48.846584",
+  "models_compared": {
+    "ml": {
+      "xgboost": true,
+      "bilstm": false
+    },
+    "rl": {
+      "qlearning": true,
+      "dqn": true
+    }
+  },
+  "summary": {
+    "xgboost": {
+      "is_trained": true,
+      "model_type": "XGBoost + Random Forest Ensemble",
+      "model_file": "C:\\Users\\ketha_shwu5zv\\Downloads\\FLIGHT_AI\\models\\delay_model.pkl",
+      "features": [
+        "origin_encoded",
+        "destination_encoded",
+        "airline_encoded",
+        "hour_of_day",
+        "day_of_week",
+        "month",
+        "is_weekend",
+        "is_morning_rush",
+        "is_evening_rush",
+        "is_night_flight",
+        "route_delay_history"
+      ],
+      "db_source": "C:\\Users\\ketha_shwu5zv\\Downloads\\FLIGHT_AI\\data\\india_data.db"
+    },
+    "qlearning": {
+      "states": 36
+    },
+    "bilstm": null,
+    "dqn": {
+      "type": "Deep Q-Network (PyTorch)",
+      "memory_size": 0,
+      "epsilon": 1.0,
+      "device": "cpu"
+    }
+  }
+}

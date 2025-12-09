@@ -5,12 +5,17 @@ Model Comparison & Benchmarking Tool
 ✅ Generate performance reports
 """
 
+import sys
+import os
 import time
 import numpy as np
 import pandas as pd
 from datetime import datetime, timedelta
 import matplotlib.pyplot as plt
 import json
+
+# Add src folder to Python path for imports
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(__file__)), 'src'))
 
 # Import existing models
 import ml_model
