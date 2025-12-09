@@ -56,9 +56,10 @@ safety_settings = [
 ]
 
 MODEL_NAMES = [
-    "models/gemini-2.0-flash-lite",   # Fastest, highest quota
-    "models/gemini-2.0-flash",        # Good balance
-    "models/gemini-2.5-flash"         # Most capable
+    "models/gemini-2.5-flash-lite",    # Fresh quota! 0/20 RPD
+    "models/gemini-2.0-flash-lite",    # Good quota
+    "models/gemini-2.0-flash",         # Standard fallback
+    "models/gemini-1.5-flash",         # Older but reliable
 ]
 
 # API key rotation - tries primary, then backup if quota exceeded
