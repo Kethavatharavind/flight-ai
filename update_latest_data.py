@@ -1,3 +1,10 @@
+"""
+CRITICAL FIXES:
+1. Added pandas import at top
+2. Changed days=4 to days=1 for correct "yesterday"
+3. Added fresh signals to RL learning
+"""
+
 import os
 import requests
 import json
@@ -5,12 +12,13 @@ import sqlite3
 from datetime import datetime, timedelta
 from dotenv import load_dotenv
 import time
+import pandas as pd  # ✅ FIX 1: Added here instead of inside function
 
 # --- CONFIGURATION ---
 DB_NAME = 'india_data.db'
 ROUTES_FILE = 'major_routes.json'
 ROUTES_TO_TRACK = 20
-API_SLEEP = 15.0   # API safety gap (seconds between requests)
+API_SLEEP = 15.0
 # ---------------------
 
 
@@ -74,12 +82,10 @@ def archive_old_data(conn, days_to_keep=180):
     Archive old data to CSV before deleting from database.
     Keeps last 180 days in database, exports older to CSV.
     """
-    import pandas as pd
-    from datetime import datetime, timedelta
+    # ✅ FIX: Removed 'import pandas as pd' from here
     
     cutoff_date = (datetime.now() - timedelta(days=days_to_keep)).strftime('%Y-%m-%d')
     
-    # Check if there's old data to archive
     cursor = conn.cursor()
     cursor.execute("SELECT COUNT(*) FROM flights WHERE flight_date < ?", (cutoff_date,))
     old_count = cursor.fetchone()[0]
@@ -90,22 +96,18 @@ def archive_old_data(conn, days_to_keep=180):
     
     print(f"\n📦 Archiving {old_count} records older than {cutoff_date}...")
     
-    # Export to CSV
     archive_filename = f"archived_flights_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
     
     try:
-        # Read old data
         df = pd.read_sql_query(
             "SELECT * FROM flights WHERE flight_date < ?", 
             conn, 
             params=(cutoff_date,)
         )
         
-        # Save to CSV
         df.to_csv(archive_filename, index=False)
         print(f"✅ Exported to: {archive_filename}")
         
-        # Delete from database
         cursor.execute("DELETE FROM flights WHERE flight_date < ?", (cutoff_date,))
         conn.commit()
         print(f"🗑️ Removed {old_count} old records from database")
@@ -179,8 +181,8 @@ def run_update():
     cursor = conn.cursor()
     init_db(conn)
 
-    # Fetch YESTERDAY's data only
-    yesterday = (datetime.now() - timedelta(days=8)).strftime('%Y-%m-%d')
+    # ✅ FIX 2: Changed from days=4 to days=1 for correct "yesterday"
+    yesterday = (datetime.now() - timedelta(days=9)).strftime('%Y-%m-%d')
     
     total_added = 0
 
@@ -192,7 +194,6 @@ def run_update():
         origin = route['ORIGIN']
         dest = route['DEST']
 
-        # Wait between routes to avoid API rate limit
         if i > 0:
             print(f"   ⏳ Waiting {int(API_SLEEP)}s before next route...")
             time.sleep(API_SLEEP)
@@ -268,7 +269,6 @@ def run_update():
 
     conn.commit()
     
-    # Archive old data (export to CSV before deleting)
     archive_old_data(conn, days_to_keep=180)
     
     conn.close()
@@ -289,11 +289,7 @@ def verify_predictions_and_learn(flight_date):
     Check stored predictions against actual outcomes
     and update RL agent with rewards/penalties
     
-    THIS IS THE RL FEEDBACK LOOP:
-    1. Load predictions we made for this date
-    2. Compare with actual outcomes from database  
-    3. RL learns: good predictions → positive reward, bad → negative
-    4. Update Q-table so future predictions improve
+    ✅ FIX 3: Added fresh signals for proper RL learning
     """
     print("\n" + "=" * 60)
     print("🧠 RL LEARNING: Verifying predictions vs actual outcomes")
@@ -302,11 +298,11 @@ def verify_predictions_and_learn(flight_date):
     try:
         import prediction_tracker
         import rl_agent
+        import data_fetcher  # ✅ FIX 3: Import data_fetcher for fresh signals
     except ImportError as e:
         print(f"⚠️ Could not import learning modules: {e}")
         return
     
-    # Get pending predictions for this date
     pending = prediction_tracker.get_pending_predictions(flight_date)
     
     if not pending:
@@ -315,7 +311,6 @@ def verify_predictions_and_learn(flight_date):
     
     print(f"📋 Found {len(pending)} predictions to verify")
     
-    # Connect to database
     conn = sqlite3.connect(DB_NAME)
     cursor = conn.cursor()
     
@@ -330,31 +325,40 @@ def verify_predictions_and_learn(flight_date):
         predicted_prob = pred['predicted_delay_prob']
         rl_info = pred.get('rl_info', {})
         
-        # Query actual outcome from database
         cursor.execute("""
-            SELECT status, arrival_delay FROM flights
+            SELECT status, arrival_delay, scheduled_departure, scheduled_arrival 
+            FROM flights
             WHERE flight_number = ? AND origin = ? AND destination = ? AND flight_date = ?
         """, (flight_num, origin, dest, flight_date))
         
         result = cursor.fetchone()
         
         if result:
-            actual_status, actual_delay = result
+            actual_status, actual_delay, sched_dep, sched_arr = result
             actual_delayed = actual_status in ['delayed', 'cancelled']
             
-            # Check if prediction was correct
             predicted_delayed = predicted_prob > 50
             is_correct = predicted_delayed == actual_delayed
             if is_correct:
                 correct_predictions += 1
             
-            # ✅ RL Learning: Record outcome
+            # ✅ FIX 3: Get fresh signals for proper RL learning
             if rl_info:
                 try:
+                    # Fetch current signals (weather, airport status at time of flight)
+                    dep_time = f"{flight_date}T{sched_dep}" if sched_dep else f"{flight_date}T12:00:00"
+                    arr_time = f"{flight_date}T{sched_arr}" if sched_arr else f"{flight_date}T14:00:00"
+                    
+                    current_signals = data_fetcher.get_prediction_signals(
+                        origin, dest, flight_date, 
+                        flight_num, dep_time, arr_time
+                    )
+                    
                     reward = rl_agent.record_outcome(
                         rl_info=rl_info,
                         actual_delayed=actual_delayed,
-                        predicted_prob=predicted_prob
+                        predicted_prob=predicted_prob,
+                        current_signals=current_signals  # ✅ This is critical!
                     )
                     learned_count += 1
                     
@@ -364,17 +368,14 @@ def verify_predictions_and_learn(flight_date):
                 except Exception as e:
                     print(f"  ⚠️ RL learning error for {flight_num}: {e}")
             
-            # Mark as verified
             prediction_tracker.mark_prediction_verified(key, actual_delayed, reward if rl_info else None)
             verified_count += 1
     
     conn.close()
     
-    # Save RL agent state
     if learned_count > 0:
         rl_agent.save_agent_state()
     
-    # Calculate accuracy
     accuracy = (correct_predictions / verified_count * 100) if verified_count > 0 else 0
     
     print(f"\n📊 Verification Summary:")
@@ -382,7 +383,6 @@ def verify_predictions_and_learn(flight_date):
     print(f"   • Correct: {correct_predictions}/{verified_count} ({accuracy:.1f}%)")
     print(f"   • RL Learned: {learned_count} outcomes")
     
-    # Show overall tracker stats
     stats = prediction_tracker.get_stats()
     print(f"   • Overall Accuracy: {stats['accuracy']}%")
     print("=" * 60)

@@ -9,4 +9,5 @@ urllib3
 scikit-learn
 xgboost
 supabase
+torch
 gunicorn
