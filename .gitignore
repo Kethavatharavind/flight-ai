@@ -10,29 +10,38 @@ venv/
 .vscode/
 .idea/
 
-# Local data (don't push to GitHub)
-india_data.db
-latest_data.db
-india_database.db
+# Local databases (don't push - too large)
 *.db
 
-# Large files (optional - uncomment if too large)
-# delay_model.pkl
-# label_encoders.pkl
+# Large CSV files
+*.csv
+Processed_data15.csv
 
-# Test files
-test_*.py
+# JSON state files (local only)
+rl_q_table.json
+rl_metrics.json
+pending_predictions.json
+long_term_summary.json
+available_routes.json
+model_comparison_report.json
+
+# Keep model files (needed for predictions)
+# These are NOT ignored - they get pushed to GitHub
 
 # Jupyter
 .ipynb_checkpoints/
 *.ipynb
 
-# Old CSV data
-Processed_data15.csv
-long_term_summary.json
-available_routes.json
-validation_results.csv
-
 # OS files
 .DS_Store
 Thumbs.db
+
+# Logs
+*.log
+
+# Empty folders created by accident
+models/
+data/
+config/
+tests/
+scripts/
