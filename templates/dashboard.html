@@ -156,6 +156,13 @@
         });
 
         const data = await res.json();
+        
+        // Check if server returned an error
+        if (!res.ok || data.error) {
+          showError(data.error || `Server error: ${res.status}`);
+          return;
+        }
+        
         displayPrediction(data);
 
       } catch (err) {

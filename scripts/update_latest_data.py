@@ -191,7 +191,7 @@ def run_update():
     init_db(conn)
 
     # ✅ FIX 2: Changed from days=4 to days=1 for correct "yesterday"
-    yesterday = (datetime.now() - timedelta(days=9)).strftime('%Y-%m-%d')
+    yesterday = (datetime.now() - timedelta(days=1)).strftime('%Y-%m-%d')
     
     total_added = 0
 

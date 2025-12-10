@@ -918,17 +918,15 @@ Provide prediction in required JSON format.
             )
             logger.info(f"✅ User-friendly summary generated (length: {len(prediction_data['user_friendly_summary'])})")
             
-            prediction_data['rl_metadata'] = convert_to_native_types(rl_info)
-            
             logger.info(f"✅ LLM+RL Prediction: {adjusted_prob}% delay")
             
-            return json.dumps(convert_to_native_types(prediction_data))
+            return convert_to_native_types(prediction_data)
             
         except Exception as e:
             logger.warning(f"LLM error: {e} - Using statistical prediction")
     
     logger.info(f"✅ Statistical+RL Prediction: {adjusted_delay_prob}% delay")
-    return json.dumps(fallback_prediction)
+    return fallback_prediction
 
 
 def get_chat_response(message, context):

@@ -260,13 +260,13 @@ def predict_status():
         logger.info(" Signals gathered, generating prediction...")
         
         
-        llm_response_str = llm_analyzer.predict_flight_outcome(
+        # llm_response is already a dict from the analyzer
+        llm_data = llm_analyzer.predict_flight_outcome(
             signals, origin_iata, dest_iata, date, departure_time, arrival_time, flight_number
         )
         
-        logger.info(f" LLM response received (length: {len(llm_response_str)})")
-        
-        llm_data = json.loads(llm_response_str)
+        logger.info(f" LLM response received (keys: {list(llm_data.keys())})")
+
         
         
         response_data = {
