@@ -834,18 +834,12 @@ def predict_flight_outcome(signals, origin, dest, date, dep_time, arr_time, flig
     logger.info(f"📊 Combined (ML+Weather): {base_delay_prob}%")
     
     # ========================================
-    # STEP 3: RL Agent Adjustment (Using DQN if available)
+    # STEP 3: RL Agent Adjustment (Q-Learning)
     # ========================================
-    if DQN_AVAILABLE and dqn_agent:
-        adjusted_delay_prob, rl_info = dqn_agent.adjust_prediction(
-            base_delay_prob, signals, date, dep_time
-        )
-        logger.info(f"🧠 Using DQN Agent (Neural Network)")
-    else:
-        adjusted_delay_prob, rl_info = rl_agent.apply_rl_adjustment(
-            base_delay_prob, signals, date, dep_time
-        )
-        logger.info(f"📊 Using Q-Learning Agent (Fallback)")
+    adjusted_delay_prob, rl_info = rl_agent.apply_rl_adjustment(
+        base_delay_prob, signals, date, dep_time
+    )
+    logger.info(f"🧠 Using Q-Learning Agent")
     rl_adjustment = adjusted_delay_prob - base_delay_prob
     logger.info(f"🤖 STEP 3 - RL Adjustment: {base_delay_prob}% → {adjusted_delay_prob}% (Δ{rl_adjustment:+.0f}%)")
     

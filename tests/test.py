@@ -40,9 +40,8 @@ class ModelComparator:
         self.xgboost_model = ml_model.get_ml_model()
         self.qlearning_agent = rl_agent.FlightPredictionRLAgent()
         
-        # Load new models if available
+        # Load advanced models if available (optional)
         self.bilstm_model = get_bilstm_model() if BILSTM_AVAILABLE else None
-        self.dqn_agent = get_dqn_agent() if DQN_AVAILABLE else None
         
         self.results = []
     
@@ -254,15 +253,13 @@ class ModelComparator:
                     'bilstm': BILSTM_AVAILABLE
                 },
                 'rl': {
-                    'qlearning': True,
-                    'dqn': DQN_AVAILABLE
+                    'qlearning': True
                 }
             },
             'summary': {
                 'xgboost': ml_model.get_ml_model().get_stats() if hasattr(ml_model.get_ml_model(), 'get_stats') else {},
                 'qlearning': {'states': len(self.qlearning_agent.q_table)},
-                'bilstm': self.bilstm_model.get_stats() if self.bilstm_model else None,
-                'dqn': self.dqn_agent.get_stats() if self.dqn_agent else None
+                'bilstm': self.bilstm_model.get_stats() if self.bilstm_model else None
             }
         }
         
@@ -335,7 +332,6 @@ if __name__ == "__main__":
     print(f"🔷 XGBoost + RF:  {'✅' if ml_model.get_ml_model().is_trained else '❌'}")
     print(f"🔶 BiLSTM:        {'✅' if BILSTM_AVAILABLE else '❌'}")
     print(f"🔷 Q-Learning:    ✅")
-    print(f"🔶 DQN:           {'✅' if DQN_AVAILABLE else '❌'}")
     print("=" * 60)
     
     # Create comparator
