@@ -98,7 +98,20 @@ class FlightPredictionRLAgent:
         return {}
     
     def _load_metrics(self):
-        """Load learning metrics, return defaults if doesn't exist"""
+        """Load learning metrics from cloud or file, return defaults if doesn't exist"""
+        # Try cloud first (like _load_q_table does)
+        if CLOUD_AVAILABLE and is_cloud_enabled():
+            try:
+                data = cloud_load_metrics()
+                if data:
+                    if 'brier_score_history' not in data:
+                        data['brier_score_history'] = []
+                    logger.info(f"☁️ Loaded metrics from cloud: {data.get('total_learning_episodes', 0)} episodes")
+                    return data
+            except Exception as e:
+                logger.warning(f"⚠️ Cloud metrics load failed: {e}")
+        
+        # Fallback to local file
         if os.path.exists(self.metrics_file):
             try:
                 with open(self.metrics_file, 'r') as f:
@@ -106,12 +119,12 @@ class FlightPredictionRLAgent:
                     
                     if 'brier_score_history' not in metrics:
                         metrics['brier_score_history'] = []
-                    logger.info(f"📊 Loaded metrics: {metrics.get('total_learning_episodes', 0)} episodes")
+                    logger.info(f"📊 Loaded metrics from file: {metrics.get('total_learning_episodes', 0)} episodes")
                     return metrics
             except Exception as e:
                 logger.warning(f"⚠️ Could not load metrics: {e}, using defaults")
-        else:
-            logger.info("🆕 No metrics file found, starting fresh")
+        
+        logger.info("🆕 No metrics found (cloud or file), starting fresh")
         
         return {
             'total_predictions': 0,
@@ -142,25 +155,34 @@ class FlightPredictionRLAgent:
         
         # Also save to local file as backup
         try:
+            os.makedirs(os.path.dirname(self.q_table_file), exist_ok=True)
             with open(self.q_table_file, 'w') as f:
                 json.dump({'q_table': self.q_table, 'epsilon': self.epsilon}, f, indent=2)
             logger.info(f"💾 Q-table saved to file | Epsilon: {self.epsilon:.3f}")
         except Exception as e:
-            logger.error(f"❌ Failed to save Q-table: {e}")
+            logger.error(f"❌ Failed to save Q-table locally: {e}")
     
     def save_metrics(self):
-        """Save learning metrics"""
+        """Save learning metrics to cloud and disk"""
+        # Save to cloud first
+        if CLOUD_AVAILABLE and is_cloud_enabled():
+            try:
+                cloud_save_metrics(self.metrics)
+                logger.info(f"☁️ Metrics saved to cloud | Episodes: {self.metrics.get('total_learning_episodes', 0)}")
+            except Exception as e:
+                logger.warning(f"⚠️ Cloud metrics save failed: {e}")
+        
+        # Also save to local file as backup
         try:
-            
             directory = os.path.dirname(self.metrics_file)
             if directory:
                 os.makedirs(directory, exist_ok=True)
             
             with open(self.metrics_file, 'w') as f:
                 json.dump(self.metrics, f, indent=2)
-            logger.info(f"📊 Metrics saved | Episodes: {self.metrics.get('total_learning_episodes', 0)}")
+            logger.info(f"📊 Metrics saved to file | Episodes: {self.metrics.get('total_learning_episodes', 0)}")
         except Exception as e:
-            logger.error(f"❌ Failed to save metrics: {e}")
+            logger.error(f"❌ Failed to save metrics locally: {e}")
     
     def get_state(self, signals, flight_date=None, flight_time=None):
         """
