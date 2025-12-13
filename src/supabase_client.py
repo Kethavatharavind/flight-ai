@@ -2,15 +2,63 @@
 Supabase Client Helper - Cloud Database Integration
 ✅ Replaces SQLite with Supabase PostgreSQL
 ✅ Replaces JSON files with JSONB storage
+✅ Retry logic with exponential backoff for network resilience
 """
 
 import os
 import json
+import time
+from functools import wraps
 from dotenv import load_dotenv
 import logging
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+
+def retry_with_backoff(max_retries=3, initial_delay=1.0, backoff_factor=2.0):
+    """
+    Decorator to retry a function with exponential backoff.
+    Handles transient network/DNS errors like getaddrinfo failures.
+    """
+    def decorator(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            delay = initial_delay
+            last_exception = None
+            
+            for attempt in range(max_retries):
+                try:
+                    return func(*args, **kwargs)
+                except Exception as e:
+                    last_exception = e
+                    error_str = str(e).lower()
+                    
+                    # Check if it's a retryable network error
+                    retryable_errors = [
+                        'getaddrinfo',
+                        'connection',
+                        'timeout',
+                        'temporary failure',
+                        'name resolution',
+                        'network',
+                        'socket'
+                    ]
+                    
+                    is_retryable = any(err in error_str for err in retryable_errors)
+                    
+                    if is_retryable and attempt < max_retries - 1:
+                        logger.warning(f"⚠️ {func.__name__} attempt {attempt + 1} failed: {e}. Retrying in {delay:.1f}s...")
+                        time.sleep(delay)
+                        delay *= backoff_factor
+                    else:
+                        # Non-retryable error or last attempt, raise immediately
+                        raise
+            
+            # Should not reach here, but just in case
+            raise last_exception
+        return wrapper
+    return decorator
 
 load_dotenv()
 
@@ -49,8 +97,9 @@ def is_cloud_enabled():
 # FLIGHTS TABLE OPERATIONS
 # ============================================================
 
+@retry_with_backoff(max_retries=3, initial_delay=1.0)
 def insert_flight(flight_data: dict):
-    """Insert a flight record"""
+    """Insert a flight record with retry logic"""
     if not is_cloud_enabled():
         return None
     
@@ -101,8 +150,9 @@ def get_flights_by_date(flight_date: str):
 # APP_DATA TABLE (JSON STORAGE)
 # ============================================================
 
+@retry_with_backoff(max_retries=3, initial_delay=1.0)
 def save_json_data(key: str, data: dict):
-    """Save JSON data to cloud"""
+    """Save JSON data to cloud with retry logic"""
     if not is_cloud_enabled():
         return False
     
@@ -119,8 +169,9 @@ def save_json_data(key: str, data: dict):
         return False
 
 
+@retry_with_backoff(max_retries=3, initial_delay=1.0)
 def load_json_data(key: str, default=None):
-    """Load JSON data from cloud"""
+    """Load JSON data from cloud with retry logic"""
     if not is_cloud_enabled():
         return default
     

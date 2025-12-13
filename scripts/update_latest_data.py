@@ -174,8 +174,8 @@ def fetch_historical_flights(origin_iata, dest_iata, date_str):
 
 
 def run_update():
-    """Main update function - fetches yesterday's flight data"""
-    print("\n🚀 STARTING FLIGHT DATA COLLECTION")
+    """update function - fetches yesterday's flight data"""
+    print("\n STARTING FLIGHT DATA COLLECTION")
     print("=" * 60)
 
     try:
@@ -190,7 +190,6 @@ def run_update():
     cursor = conn.cursor()
     init_db(conn)
 
-    # ✅ FIX 2: Changed from days=4 to days=1 for correct "yesterday"
     yesterday = (datetime.now() - timedelta(days=1)).strftime('%Y-%m-%d')
     
     total_added = 0
